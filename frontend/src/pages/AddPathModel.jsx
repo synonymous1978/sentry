@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { MapPin, AlertTriangle, Truck, Loader2, X } from 'lucide-react';
-import '@/styles/AddPathModel.css';
+import React, { useState } from "react";
+import { MapPin, AlertTriangle, Truck, Loader2, X } from "lucide-react";
+import "@/styles/AddPathModel.css";
 
 export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
-  const [startLocation, setStartLocation] = useState('New Delhi');
-  const [destination, setDestination] = useState('Mumbai');
+  const [startLocation, setStartLocation] = useState("New Delhi");
+  const [destination, setDestination] = useState("Mumbai");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -14,19 +14,35 @@ export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
     e.preventDefault();
     setError(null);
 
-    if (!startLocation || !destination) {
-      setError('Please enter both a start location and a destination.');
+    if (!startLocation.trim() || !destination.trim()) {
+      setError("Please enter both start and destination.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      if (onStartTracking) onStartTracking(startLocation, destination);
+      const res = await fetch("https://sentry-1.onrender.com/api/start-tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start: startLocation, destination }),
+      });
+
+      const result = await res.json();
+
+      // IMPORTANT FIX — avoid empty or undefined trackingId
+      if (!result.trackingId) {
+        setError("Backend did not return a valid tracking ID.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Send validated data to parent component
+      onStartTracking(startLocation, destination, result.trackingId);
+
       onClose();
-    } catch {
-      setError('Failed to start tracking session. (Mocked error)');
+    } catch (err) {
+      setError("Failed to communicate with backend.");
     } finally {
       setIsLoading(false);
     }
@@ -35,7 +51,7 @@ export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
   return (
     <div className="add-path-overlay" onClick={onClose}>
       <div className="add-path-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Close Button */}
+        {/* Close */}
         <button onClick={onClose} className="add-path-close" disabled={isLoading}>
           <X className="w-6 h-6" />
         </button>
@@ -49,7 +65,7 @@ export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
         {/* Error */}
         {error && (
           <div className="add-path-error">
-            <AlertTriangle className="w-5 h-5 mr-2 mt-0.5 shrink-0" />
+            <AlertTriangle className="w-5 h-5 mr-2" />
             <span>{error}</span>
           </div>
         )}
@@ -58,11 +74,8 @@ export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
         <form onSubmit={handleStartTracking}>
           <div className="add-path-form">
             <div>
-              <label htmlFor="start" className="add-path-label">
-                Start Location
-              </label>
+              <label className="add-path-label">Start Location</label>
               <input
-                id="start"
                 type="text"
                 value={startLocation}
                 onChange={(e) => setStartLocation(e.target.value)}
@@ -72,11 +85,8 @@ export default function AddPathModal({ isVisible, onClose, onStartTracking }) {
             </div>
 
             <div>
-              <label htmlFor="destination" className="add-path-label">
-                Destination
-              </label>
+              <label className="add-path-label">Destination</label>
               <input
-                id="destination"
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}

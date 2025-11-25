@@ -75,7 +75,7 @@ export default function EmergencyContacts() {
       <Header />
       <BackgroundAnimation />
       <article className="emergency-contacts-page">
-        <h2>Manage Emergency Information 🚨</h2>
+        <h2>Manage Emergency Information</h2>
 
         <button className="back-button" onClick={() => navigate(-1)}>
           &larr;
